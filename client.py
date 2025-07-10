@@ -1,5 +1,5 @@
 import threading
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Optional, Tuple
 from uuid import uuid4
 from .wos_type import (
     WOSAPIFeedback,
@@ -13,13 +13,14 @@ from .constant import Op
 from .transport import WOSTransport
 from .logger import logger
 
+
 class WOSServiceHandler:
-    def handle_request(self, action: str, arguments: Any) -> tuple[Any, str | None]:
+    def handle_request(self, action: str, arguments: Any) -> Tuple[Any, Optional[str]]:
         return None, None
 
     def handle_action(
         self, action: str, arguments: Any, fb: Callable[[float, str], None]
-    ) -> tuple[Any, str | None]:
+    ) -> Tuple[Any, Optional[str]]:
         return None, None
 
     def handle_cancel(self, action: str, arguments: Any):
@@ -30,7 +31,7 @@ class WOSServiceHandler:
 
     def resource_name(self) -> str:
         return ""
-    
+
 
 class WOSRegisterServiceRequest:
     def __init__(self, id: str) -> None:
@@ -42,7 +43,7 @@ class WOSRegisterServiceRequest:
     def wait(self):
         self.event.wait()
 
-    def on_result(self, success: bool, err: str | None):
+    def on_result(self, success: bool, err: Optional[str]):
         self.success = success
         self.err = err
         self.event.set()
@@ -127,25 +128,27 @@ class WOSClient:
 
     def run_request(
         self, resource: str, action: str, args: Any
-    ) -> Tuple[Any | None, str | None]:
+    ) -> Tuple[Optional[Any], Optional[str]]:
         id = str(uuid4())
         handler = WOSRequestHandler()
         self.requestHandler[id] = handler
         self.transport.send(
-            WOSAPIMessage(id, Op.OpRequest, resource, WOSAPIRequest(action, args))
+            WOSAPIMessage(id, Op.OpRequest, resource,
+                          WOSAPIRequest(action, args))
         )
         handler.wait()
         return handler.result, handler.err
 
     def run_action(
         self, resource: str, action: str, args: Any, fb: Callable[[float, str], None]
-    ) -> Tuple[Any | None, str | None]:
+    ) -> Tuple[Optional[Any], Optional[str]]:
         id = str(uuid4())
         handler = WOSRequestHandler()
         handler.on_feedback = lambda progress, status: fb(progress, status)
         self.requestHandler[id] = handler
         self.transport.send(
-            WOSAPIMessage(id, Op.OpAction, resource, WOSAPIRequest(action, args))
+            WOSAPIMessage(id, Op.OpAction, resource,
+                          WOSAPIRequest(action, args))
         )
         handler.wait()
         return handler.result, handler.err
@@ -158,7 +161,8 @@ class WOSClient:
         self.register_service_request = WOSRegisterServiceRequest(id)
         info = handle.service_info()
         self.transport.send(
-            WOSAPIMessage(id, Op.OpRegisterService, handle.resource_name(), info)
+            WOSAPIMessage(id, Op.OpRegisterService,
+                          handle.resource_name(), info)
         )
         self.register_service_request.wait()
         return True
@@ -175,7 +179,8 @@ class WOSClient:
                 self.register_service_request != None
                 and not self.register_service_request.event.is_set()
             ):
-                self.register_service_request.on_result(False, "Removed service")
+                self.register_service_request.on_result(
+                    False, "Removed service")
                 self.register_service_request = None
 
     def _receive_message(self, msg: WOSAPIMessage):
@@ -186,7 +191,8 @@ class WOSClient:
         if msg.op == Op.OpPublish:
             if msg.resource in self.subscriptions:
                 for k in self.subscriptions[msg.resource]:
-                    self.subscriptions[msg.resource][k](msg.get_publish_message())
+                    self.subscriptions[msg.resource][k](
+                        msg.get_publish_message())
 
         if msg.op == Op.OpRequest:
             if self.serviceHandle != None:
@@ -197,7 +203,8 @@ class WOSClient:
                 if err == None:
                     self.transport.send(
                         WOSAPIMessage(
-                            msg.id, Op.OpResult, msg.resource, WOSAPIResult("", result)
+                            msg.id, Op.OpResult, msg.resource, WOSAPIResult(
+                                "", result)
                         )
                     )
                 else:
@@ -212,14 +219,16 @@ class WOSClient:
                     req.arguments,
                     lambda p, s: self.transport.send(
                         WOSAPIMessage(
-                            msg.id, Op.OpFeedback, msg.resource, WOSAPIFeedback(p, s)
+                            msg.id, Op.OpFeedback, msg.resource, WOSAPIFeedback(
+                                p, s)
                         )
                     ),
                 )
                 if err == None:
                     self.transport.send(
                         WOSAPIMessage(
-                            msg.id, Op.OpResult, msg.resource, WOSAPIResult("", result)
+                            msg.id, Op.OpResult, msg.resource, WOSAPIResult(
+                                "", result)
                         )
                     )
                 else:
@@ -246,7 +255,8 @@ class WOSClient:
 
         if msg.op == Op.OpError:
             logger.warn(
-                "Receive Error (resource: %s): %s", msg.resource, msg.get_data_string()
+                "Receive Error (resource: %s): %s", msg.resource, msg.get_data_string(
+                )
             )
             if (
                 self.register_service_request != None
