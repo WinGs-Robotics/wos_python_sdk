@@ -1,5 +1,5 @@
 import logging
-from wos_api.connection import CreateWSClient
+from .connection import CreateWSClient
 
 
 class robot_rt_control:
@@ -16,22 +16,23 @@ class robot_rt_control:
             logging.error("Connection Failed, quitting.")
             exit(1)  # Exit if connection fails
 
-    def rt_movec_soft(self,target, duration):
-            result, err = self.client.run_request(self.robot_id, "rt-move-cartesian-soft", {
-                                     "destination": target, "useVelocity": False, "duration": duration, "velocityPercentage": 0, "isRelative": False})
-            if err:
-                print(f"Robot control, Error occurred: {err}")
-            return result
-    
-    def rt_movec(self,target):
-        result, err = self.client.run_request(self.robot_id, "rt-move-cartesian", {
-                                    "destination": target, "velocityPercentage": 100, "isRelative": False})
+    def rt_movec_soft(self, target, duration):
+        result, err = self.client.run_request(self.robot_id, "rt-move-cartesian-soft", {
+            "destination": target, "useVelocity": False, "duration": duration, "velocityPercentage": 0, "isRelative": False})
         if err:
             print(f"Robot control, Error occurred: {err}")
         return result
-    def rt_movec_hard(self,target):
+
+    def rt_movec(self, target):
+        result, err = self.client.run_request(self.robot_id, "rt-move-cartesian", {
+            "destination": target, "velocityPercentage": 100, "isRelative": False})
+        if err:
+            print(f"Robot control, Error occurred: {err}")
+        return result
+
+    def rt_movec_hard(self, target):
         result, err = self.client.run_request(self.robot_id, "rt-move-cartesian-hard", {
-                                    "destination": target, "isRelative": False})
+            "destination": target, "isRelative": False})
         if err:
             print(f"Robot control, Error occurred: {err}")
         return result
