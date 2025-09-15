@@ -23,6 +23,18 @@ class robot_rt_control_async:
         )
         self._sender_th.start()
 
+    def rt_move(self, target, duration):
+        waypoint = {
+            "position": target,
+            "duration": duration,
+        }
+        self._enqueue({
+            "method": "rt-move",
+            "payload": {
+                "waypoints": [waypoint],
+            }
+        })
+
     def rt_movec(self, target):
         self._enqueue({
             "method": "rt-move-cartesian",
